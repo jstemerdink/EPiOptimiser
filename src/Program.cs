@@ -1,22 +1,14 @@
-﻿namespace EPiOptimiser
-{
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Text;
-    using System.IO;
-    using System.Reflection;
-    using System.ComponentModel.Composition.Hosting;
-    using System.ComponentModel.Composition.Primitives;
-    using System.Configuration;
-    using EPiServer.Framework.Configuration;
-    using Microsoft.Build.Utilities;
-    using System.Windows.Forms;
+﻿using System;
+using System.IO;
+using System.Text;
+using System.Windows.Forms;
 
-    class Program
+namespace EPiOptimiser
+{
+    internal class Program
     {
-        [STAThreadAttribute]
-        static void Main(string[] args)
+        [STAThread]
+        private static void Main(string[] args)
         {
             if (args.Length < 1)
             {
@@ -30,19 +22,25 @@
             if (!File.Exists(sourcePath))
             {
                 Console.WriteLine("Could not open file \"" + sourcePath + "\".");
-                try { Console.ReadKey(); }
-                catch { }
+                try
+                {
+                    Console.ReadKey();
+                }
+                catch
+                {
+                }
                 return;
             }
 
-            var assemblyParser = new ParseAssembliesForPlugIns();
+            ParseAssembliesForPlugIns assemblyParser = new ParseAssembliesForPlugIns();
 
             StringBuilder sb = new StringBuilder();
+
             foreach (string assemblyName in assemblyParser.GetSafeToIgnoreAssemblies(sourcePath))
             {
                 string remove = "<remove assembly=\"" + assemblyName + "\" />";
                 Console.WriteLine(remove);
-                sb.Append(remove + System.Environment.NewLine);
+                sb.Append(remove + Environment.NewLine);
             }
 
             Clipboard.SetText(sb.ToString());
@@ -52,8 +50,13 @@
             Console.WriteLine("Remove assembly list copied to clipboard");
             Console.WriteLine("========================================");
 
-            try { Console.ReadKey(); }
-            catch { }
+            try
+            {
+                Console.ReadKey();
+            }
+            catch
+            {
+            }
         }
     }
 }

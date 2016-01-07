@@ -11,38 +11,40 @@ namespace EPiOptimiser
     {
         public IList<string> GetExcludedAssemblyList(string configFilePath)
         {
-            var excludedList = new List<string>();
+            List<string> excludedList = new List<string>();
 
             //Use the .net config manager as it will automatically pick up config sections that are added with the configSource attribute
-            var fileMap = new ConfigurationFileMap(configFilePath);
+            ConfigurationFileMap fileMap = new ConfigurationFileMap(configFilePath);
 
-            var configuration = ConfigurationManager.OpenMappedMachineConfiguration(fileMap);
-            var section = ((EPiServerFrameworkSection)configuration.Sections.Get("episerver.framework"));
+            Configuration configuration = ConfigurationManager.OpenMappedMachineConfiguration(fileMap);
+            EPiServerFrameworkSection section = ((EPiServerFrameworkSection)configuration.Sections.Get("episerver.framework"));
 
-            if (section != null)
+            if (section == null)
             {
-                var scanAssemblySection = section.ScanAssembly;
+                return excludedList;
+            }
 
-                //Bit of refelection needed to access the private property "Items"
-                var assemblies =
-                    (ArrayList)
-                    ((typeof(ConfigurationElementCollection).GetProperty(
-                        "Items",
-                        BindingFlags.Instance | BindingFlags.NonPublic)).GetValue(scanAssemblySection, null));
+            AssemblyElementCollection scanAssemblySection = section.ScanAssembly;
 
-                foreach (var assem in assemblies)
+            //Bit of reflection needed to access the private property "Items"
+            ArrayList assemblies =
+                (ArrayList)
+                ((typeof(ConfigurationElementCollection).GetProperty(
+                    "Items",
+                    BindingFlags.Instance | BindingFlags.NonPublic)).GetValue(scanAssemblySection, null));
+
+            foreach (object assem in assemblies)
+            {
+                string assemName =
+                    ((assem.GetType()).GetField("_key", BindingFlags.Instance | BindingFlags.NonPublic)).GetValue(
+                        assem).ToString();
+                string entryType =
+                    ((assem.GetType()).GetField("_entryType", BindingFlags.Instance | BindingFlags.NonPublic))
+                        .GetValue(assem).ToString();
+
+                if (entryType == "Removed")
                 {
-                    var assemName =
-                        ((assem.GetType()).GetField("_key", BindingFlags.Instance | BindingFlags.NonPublic)).GetValue(
-                            assem).ToString();
-                    var entryType =
-                        ((assem.GetType()).GetField("_entryType", BindingFlags.Instance | BindingFlags.NonPublic))
-                            .GetValue(assem).ToString();
-
-                    if (entryType == "Removed")
-                    {
-                        excludedList.Add(assemName);
-                    }
+                    excludedList.Add(assemName);
                 }
             }
 
@@ -52,23 +54,23 @@ namespace EPiOptimiser
         private class Entry
         {
             // Fields
-            internal EntryType _entryType;
+            internal EntryType EntryType;
 
-            internal readonly object _key;
+            internal readonly object Key;
 
-            internal ConfigurationElement _value;
+            internal ConfigurationElement Value;
 
             // Methods
             internal Entry(EntryType type, object key, ConfigurationElement value)
             {
-                this._entryType = type;
-                this._key = key;
-                this._value = value;
+                this.EntryType = type;
+                this.Key = key;
+                this.Value = value;
             }
 
             internal object GetKey(ConfigurationElementCollection ThisCollection)
             {
-                return this._key;
+                return this.Key;
                 //if (this._value != null)
                 //{
                 //    return ThisCollection.GetElementKeyInternal(this._value);
